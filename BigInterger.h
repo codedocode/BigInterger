@@ -5,63 +5,83 @@
 using namespace std;
 class BigInterger
 {
-	//typedef unsigned int u32;
-	//typedef int i32;
-	//typedef long long i64;
-	//typedef unsigned long long u64;
 public:
-	BigInterger(string val, int radix);
-	string toString(int radix);
+	BigInterger(string val = "0");
+	BigInterger(const BigInterger& bi);
+	BigInterger& operator=(const BigInterger& bi);
+	BigInterger& operator==(const BigInterger& bi);
+	//四则运算
+	BigInterger& operator+(const BigInterger& bi);
+	BigInterger& operator-(const BigInterger& bi);
+	BigInterger& operator*(const BigInterger& bi);
+	BigInterger& operator/(const BigInterger& bi);
+	BigInterger& operator/(const BigInterger& bi);
+	BigInterger& operator+=(const BigInterger& bi);
+	BigInterger& operator-=(const BigInterger& bi);
+	BigInterger& operator*=(const BigInterger& bi);
+	BigInterger& operator/=(const BigInterger& bi);
+	//逻辑运算
+	BigInterger& operator&(const BigInterger& bi);
+	BigInterger& operator|(const BigInterger& bi);
+	BigInterger& operator&=(const BigInterger& bi);
+	BigInterger& operator|=(const BigInterger& bi);
+
+	string toString();
+private:
+	string changeRadix(unsigned int val, int radix);
+	void destructiveMulAdd(vector<unsigned int>& v, int sr, int gv);
+	int parseInt(string val){
+		int ret = 0;
+		for(int i = 0; i < val.size(); ++i)
+			ret = ret * 10 + val[i] - '0';
+		return ret;
+	}
+	void changeMag(const BigInterger& bi){
+		if(mag == bi.mag && signum == bi.signum) 
+			return ;
+		mag.clear();
+		signum = bi.signum;
+		mag = bi.mag;
+	}
+	void swap(char& a, char& b){
+		char c = a;
+		a = b;
+		b = c;
+	}
+	void delZeroInts(){
+		while(!mag.empty() && mag[0] == 0)
+			mag.erase(mag.begin());
+	} 
 private:
 	vector<unsigned int> mag;	//用于承载大数的数组
 	int signum;	//存储符号位
-private:
-	static const int MIN_RADIX = 2;	//最小进制
-	static const int MAX_RADIX = 36;//最大进制
-	/* 每个int能放多少位数字（索引为进制数） */
-	static const int digitsPerInt[] = {0, 0, 30, 19, 15, 13, 11,
-		11, 10, 9, 9, 8, 8, 8, 8, 7, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6,
-		6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5
-	};
-	/* 每个进制的数要用几位二进制来表示（索引为进制数，结果乘以1024以防止纯小数的产生） */
-	static const int bitsPerDigit[] = { 0, 0,
-		1024, 1624, 2048, 2378, 2648, 2875, 3072, 3247, 3402, 3543, 3672,
-		3790, 3899, 4001, 4096, 4186, 4271, 4350, 4426, 4498, 4567, 4633,
-		4696, 4756, 4814, 4870, 4923, 4975, 5025, 5074, 5120, 5166, 5210,
-		5253, 5295
-	};
-	/* 保存了对应各种radix的最大可表示的数字，由进制和位数表求出 */
-	static const int intRadix[] = {0, 0,
-		0x40000000, 0x4546b3db, 0x40000000, 0x48c27395, 0x159fd800,
-		0x75db9c97, 0x40000000, 0x17179149, 0x3b9aca00, 0xcc6db61,
-		0x19a10000, 0x309f1021, 0x57f6c100, 0xa2f1b6f,  0x10000000,
-		0x18754571, 0x247dbc80, 0x3547667b, 0x4c4b4000, 0x6b5a6e1d,
-		0x6c20a40,  0x8d2d931,  0xb640000,  0xe8d4a51,  0x1269ae40,
-		0x17179149, 0x1cb91000, 0x23744899, 0x2b73a840, 0x34e63b41,
-		0x40000000, 0x4cfa3cc1, 0x5c13d840, 0x6d91b519, 0x39aa400
-	};
-	int parseInt(string val, int radix);
-	void delZeroInts(){
-		while(!mag.empty() && mag[0] == 0){
-			if(mag[0] == 0) mag.erase(mag.begin());
-		}
-	} 
+	/* 每一个unsigned int类型的数最多存放9位十进制的数据 */
+	static const int digitsPerInt = 9;
+	/* 十进制的数的每一位要用几位二进制来表示 */
+	static const int bitsPerDigit = 4;
+	/* 9位十进制能表示的最大的数字 */
+	static const int intRadix = 1e9;
 };
-
-int BigInterger::parseInt(string val, int radix)
+string BigInterger::changeRadix(unsigned int val, int radix)
 {
-	int ret = 0;
-	for(int i = 0; i < val.size(); ++i)
-		ret = ret * radix + val[i] - '0';
-	return ret;
+	string str;
+	while(val != 0){
+		int num = val % radix;
+		val /= radix;
+		char tmp;
+		if(num > 10) tmp = 'a' + num - 10;
+		else tmp = '0' + tmp;
+		str.push_back(tmp);
+	}
+	int i = 0, j = str.size() - 1;
+	while(i < j) swap(str[i++], str[j--]);
+	return str;
 }
-BigInterger::BigInterger(string val, int radix)
+BigInterger::BigInterger(string val)
 {
 	int cursor = 0, numDigits;	//0的个数和有效数字的个数
 	int len = val.size();	//字符串长度
-	if(radix > MIN_RADIX || radix > MAX_RADIX)
-		throw exception("Radix out of range");
-	if(val.size() == 0)
+	if(len == 0) 
 		throw exception("Zero length BigInteger");
 	//判断正负性
 	signum = 1;	//正数
@@ -87,63 +107,111 @@ BigInterger::BigInterger(string val, int radix)
 	else{
 		numDigits = len - cursor;	//有效数字的长度
 	}
-	/* 换算成二进制需要多少位，加1是防止小数丢失 */
-	int numBits = ((numDigits * bitsPerDigit[radix]) >> 10) + 1;
-	int numWords = (numBits + 31) >> 32;	//mag数组的大小
-	mag.resize(numWords);
-	int firstLen = numDigits % digitsPerInt[radix];	//最高位多出来的位数先处理
+	/* 换算成二进制需要多少位，每一个十进制都需要最多四位 */
+	int numBits = numDigits * bitsPerDigit;
+	mag.resize((numBits + 31) >> 5);	//mag数组的大小
+	int firstLen = numDigits % digitsPerInt;	//最高位多出来的数先处理（例如长度13，则先处理最高的4字数字）
 	if(firstLen == 0)	//刚好整除
-		firstLen = digitsPerInt[radix];
+		firstLen = digitsPerInt;
 	string group = val.substr(cursor, cursor += firstLen);
-	mag[mag.size() - 1] = parseInt(group, radix);
+	mag[mag.size() - 1] = parseInt(group);
+	/*
 	if(mag.back() < 0)
 		throw exception("Illegal digit");
-	int superRadix = intRadix[radix];	//当前进制下，一个unsigned int可表示的最大的数
+	*/
 	int groupVal = 0;
 	while(cursor < val.size()){
-		group = val.substr(cursor, cursor += digitsPerInt[radix]);
-		groupVal = parseInt(group, radix);
+		group = val.substr(cursor, cursor += digitsPerInt);
+		groupVal = parseInt(group);
 		if(groupVal < 0)
 			throw exception("Illegal digit");
-		destructiveMulAdd(mag, superRadix, groupVal);
+		destructiveMulAdd(mag, intRadix, groupVal);
 	}
 	/* 去除前导0 */
 	delZeroInts();
 }
+BigInterger::BigInterger(const BigInterger& bi)
+{
+	changeMag(bi);
+}
+BigInterger& BigInterger::operator=(const BigInterger& bi)
+{
+	changeMag(bi);
+	return *this;
+}
+BigInterger& BigInterger::operator==(const BigInterger& bi)
+{
+	
+}
+//四则运算
+BigInterger& BigInterger::operator+(const BigInterger& bi);
+{
+
+}
+BigInterger& BigInterger::operator-(const BigInterger& bi);
+{
+
+}
+BigInterger& BigInterger::operator*(const BigInterger& bi);
+{}
+BigInterger& BigInterger::operator/(const BigInterger& bi);
+{}
+BigInterger& BigInterger::operator/(const BigInterger& bi);
+{}
+BigInterger& BigInterger::operator+=(const BigInterger& bi);
+{}
+BigInterger& BigInterger::operator-=(const BigInterger& bi);
+{}
+BigInterger& BigInterger::operator*=(const BigInterger& bi);
+{}
+BigInterger& BigInterger::operator/=(const BigInterger& bi);
+{}
+//逻辑运算
+BigInterger& BigInterger::operator&(const BigInterger& bi);
+{}
+BigInterger& BigInterger::operator|(const BigInterger& bi);
+{}
+BigInterger& BigInterger::operator&=(const BigInterger& bi);
+{}
+BigInterger& BigInterger::operator|=(const BigInterger& bi);
+{}
+//私有方法
 void BigInterger::destructiveMulAdd(vector<unsigned int>& v, int sr, int gv)
 {
-	long lsr = static_cast<long long>(sr);
-	long lgv = static_cast<long long>(gv);
+	long long lsr = static_cast<long long>(sr);	//可以表示的最大数字（用来当进制）
+	long long lgv = static_cast<long long>(gv);	//当前数字
 	int len = v.size();
 	long long product = 0, carry = 0;	//存储乘积的低32位和高32位
-	/* 先进行数组的移位，从低位到高位分别和y相乘，每次都加上之前的进位 */
+	/* 先进行数组的移位，从低位到高位分别和进制相乘 */
 	for(int i = len - 1; i >= 0; --i){
 		product = lsr * static_cast<long long>(v[i]) + carry;
-		x[i] = static_cast<int>(product);	//低32位
+		v[i] = static_cast<int>(product & 0x00000000ffffffff);	//低32位
 		carry = product >> 32;	//进位（高32位）
 	}
 	long long sum = static_cast<long long>(v[len - 1]) + lgv;	//最低位置
-	v[len - 1] = static_cast<int>(sum);
+	v[len - 1] = static_cast<int>(sum & 0x00000000ffffffff);
 	carry = sum >> 32;
 	/* 再将需要添加的gv添加进来 */
 	for(int i = len - 2; i >= 0; --i){
 		sum = static_cast<long long>(v[i]) + carry;
 		v[i] = static_cast<int>(sum);
 		carry = sum >> 32;
+		if(carry == 0) break;
 	}
 }
-string BigIntergers::toString(int radix)
+string BigInterger::toString()
 {
 	if(signum == 0)
 		return string("0");
-	if(radix > MIN_RADIX || radix > MAX_RADIX)
-		radix = 10;
-	//int maxNumDigitsGroups = (4 * mag.size() + 6) / 7;	//求出字节数
-	//string str;
-	//str.resize(maxNumDigitsGroups);	//申请合适的空间
 	string ret;
-	int carry = 0;
-	for(int i = mag.size() - 1; i >= 0; --i){
-		
+	if(signum == -1) ret.push_back('-');
+	ret += to_string(mag.front());
+	/* 逐个把数放进去，不够补0 */
+	for(int i = 1; i < mag.size(); ++i){
+		string tmp = to_string(mag[i]);
+		int zero = 9 - tmp.size();
+		while(zero--) ret.push_back('0');
+		ret += tmp;
 	}
+	return ret;
 }
